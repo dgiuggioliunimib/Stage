@@ -17,6 +17,9 @@ class PerceptronLayer():
         return self.activation.activate(self.z)
     
     def get_loss(self, true, predicted):
+        return self.loss.calculate(true, predicted)
+    
+    def get_d_loss(self, true, predicted):
         return self.loss.derivative(true, predicted)
     
     def backward(self, error, learning_rate = 0.1):

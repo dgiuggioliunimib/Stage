@@ -28,7 +28,7 @@ y = y.flatten()
 # 0 = natura, 1 = città
 #y = [0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0]
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.40, random_state=100)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=100)
 
 from sklearn.preprocessing import StandardScaler
 

@@ -45,14 +45,15 @@ class Trainer():
 
             loss = self.network[-1].get_loss(self.convertedTarget, network_output)
             total_loss += np.sum(loss)
-
-
             # Backward pass
             #error = loss
             err = network_output - self.convertedTarget
             error = err
             for layer in reversed(self.network):
                 error = layer.backward(error, self.learningRate)
+            
+            if epoch % 500 == 0:
+                print(f"Epoch {epoch}: Loss = {loss}")
 
         return self.network
 

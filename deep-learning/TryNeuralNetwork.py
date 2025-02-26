@@ -18,6 +18,6 @@ class TryNeuralNetwork():
         output = inputs
         for layer in self.network:
             output = layer.forward(output)
-        print(output)
+        #print(output)
         predicted = np.argmax(output, axis=1)
         return predicted

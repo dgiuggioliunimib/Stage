@@ -33,3 +33,10 @@ class ReLU(Activation):
     
     def derivative(self, input):
         return (input > 0).astype(float)
+    
+class Identity(Activation):
+    def activate(self, input):
+        return input
+    
+    def derivative(self, input):
+        return input

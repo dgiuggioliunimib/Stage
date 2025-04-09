@@ -94,7 +94,8 @@ class NeatOptimizer():
             nodes = len(best_network.graph.nodes)
             #print("species", len(species_list), "population:", len(population))
             if (gen+1) % 1 == 0:
-                print(f"Generazione {gen+1}, Miglior fitness: {best_fitness:.4f} \nBest Network: {best_network.graph.rank} \nOutput: {best_network.forward(input)}")
+                print(f"Generazione {gen+1}, Miglior fitness: {best_fitness:.4f} \nBest Network: {best_network.graph.rank}")
+                #print(f"Output: {best_network.forward(input)}")
             fitness_history.append(best_fitness)
             nodes_history.append(nodes)
             species_history.append(len(species_list))
@@ -419,7 +420,6 @@ class NeatOptimizer():
         genetic_distance = (c1 * excess_genes / N) + (c2 * disjoint_genes / N) + (c3 * weight_diff)
         #print("weight diff", weight_diff, "excess genes", excess_genes, "disjoint genes", disjoint_genes, "genetic distance", genetic_distance)
         return genetic_distance'''
-
     
     def calculate_network_dimension(self, network: Network):
         nodes = len(network.graph.nodes)
@@ -523,7 +523,6 @@ class TargetTransform():
                     return item['value']
             return None
 
-# implementare neat
 
 if __name__ == "__main__":
 
@@ -551,10 +550,9 @@ if __name__ == "__main__":
 
     '''
     y_true_values = TargetTransform.get_true_values(y)
-    test_size = 0.8
+    test_size = 0.5
     X_train, X_test, y_train, y_test = train_test_split(X, y_true_values, test_size= test_size, random_state=100)
-    print(X_train)
-
+    print("train set: ", X_train)
     from sklearn.preprocessing import StandardScaler
 
     scaler = StandardScaler()
@@ -570,10 +568,12 @@ if __name__ == "__main__":
     optimizer = NeatOptimizer(POPULATION, GENERATIONS, LEAVES, INPUT_SIZE)
     network = optimizer.optimize(X_train, y_train)
 
-    i = rd.randint(0, len(X_test))
-    fitness = optimizer.fitness(network, [X_test[i]], y_test[i])
-    print("FITNESS Best Network on random input: ", fitness)
+    for i in range(len(X_test)):
+        fitness = optimizer.fitness(network, [X_test[i]], y_test[i])
+        print(f"FITNESS Best Network on test input[{i}]: {fitness}")
     # X, y_true_values
+
+
 
 # Note:
 # La determinazione di quanti input appartengono alla network adesso si fa alla init della classe Network
@@ -582,7 +582,7 @@ if __name__ == "__main__":
 # La classe graph permette di ottenere in input alla creazione una lista di foglie. questo è utile nei casi in cui è
 # necessario avere già il numero di foglie corretto per la nostra rete neurale (no random)
 
-# La complessità della forward è elevata perchè la rete non è completa tra ogni layere, quindi dinamicamente
+# La complessità della forward è elevata perchè la rete non è completa tra ogni layer, quindi dinamicamente
 # occorre inoltrare nodo per nodo i valori, rispettando anche il rank che si è determinato
 
 # La forward accetta come input una matrice

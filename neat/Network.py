@@ -12,9 +12,6 @@ class Network():
     def forward(self, input):
         self.graph.set_rank()
         self.graph.create_adjacency_list()
-        #print("conn", self.graph.connections)
-        #print(self.graph.rank)
-        #print(self.graph.adjacency_list)
         output = []
 
         for i in input:

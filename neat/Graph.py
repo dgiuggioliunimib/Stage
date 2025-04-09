@@ -58,14 +58,6 @@ class Graph():
         #self.calculate_leaves()
         #self.set_rank()
         
-    '''def get_intermediate_nodes(self):
-        nodes = self.nodes.copy()
-        root = self.get_root()
-        for n in self.nodes:
-            if n in root:
-                nodes.remove(n)
-        return nodes'''
-    
     def get_new_id(self):
         max_node = max(self.nodes, key=lambda n: n.id)
         return max_node.id + 1
@@ -168,7 +160,6 @@ class Graph():
         self.max_rank = i'''
 
     def set_rank(self):
-        #print(self.connections)
         root = self.root
         self.rank = {}
         i = 0

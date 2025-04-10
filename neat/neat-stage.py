@@ -35,7 +35,7 @@ class NeatOptimizer():
     REACTIVATION_CONNECTION_RATE = 0.005
     MUTATION_CHANGE_BIAS_RATE = 0.005
 
-    def __init__(self, population: int, generations: int, graph_leaves: int = 1, graph_input_size: int = 2, error: float = 0.025):
+    def __init__(self, population: int, generations: int, graph_leaves: int = 1, graph_input_size: int = 2, error: float = 0.03):
         self.POPULATION = population
         self.GENERATIONS = generations
         self.graph_leaves = graph_leaves
@@ -80,7 +80,7 @@ class NeatOptimizer():
             species_list = self.speciation(population, species_list)
             # COSTOSO!!!
             #species_list = sorted(species_list, key=lambda s: max(self.fitness(s.members[i], input, target) for i in range(len(s.members))))
-            species_list = sorted(species_list, key=lambda s: self.fitness(s.representative, input, target))
+            species_list = sorted(species_list, key=lambda s: s.avg_fitness)
 
             #population = self.evolve(population, input, target)
             population = self.evolve_species(species_list, input, target)
@@ -94,7 +94,7 @@ class NeatOptimizer():
             nodes = len(best_network.graph.nodes)
             #print("species", len(species_list), "population:", len(population))
             if (gen+1) % 1 == 0:
-                print(f"Generazione {gen+1}, Miglior fitness: {best_fitness:.4f} \nBest Network: {best_network.graph.rank}")
+                print(f"Generazione {gen+1}, Miglior fitness: {best_fitness:.4f} \nBest Network: {best_network.graph.rank} \nPopulation: {len(population)} ({len(species_list)} species)")
                 #print(f"Output: {best_network.forward(input)}")
             fitness_history.append(best_fitness)
             nodes_history.append(nodes)
@@ -138,22 +138,32 @@ class NeatOptimizer():
     
     def evolve_species(self, species_list, input, target):
         new_population = []
+        allow_normal_crossover = False
 
         for species in species_list:
             species.members.sort(key=lambda net: self.fitness(net, input, target), reverse=True)
-            species_median_fitness = self.fitness(species.members[int(len(species.members) / 2)], input, target)
-            #species_avg_fitness = sum(self.fitness(net, input, target) for net in species.members) / len(species.members)
-            #best_individual_fitness = max(self.fitness(species.members[i], input, target) for i in range(len(species.members)))
             best_individual_fitness = self.fitness(species.members[0], input, target)
+            species_median_fitness = self.fitness(species.members[int(len(species.members) / 2)], input, target)
+            species.avg_fitness = species_median_fitness
 
-            if best_individual_fitness > species.best_fitness and species.avg_fitness > species_median_fitness:
+            # and species.avg_fitness > species_median_fitness
+            if best_individual_fitness > species.best_fitness:
                 species.best_fitness = best_individual_fitness
-                species.avg_fitness = species_median_fitness
                 species.stagnation_counter = 0
+                allow_normal_crossover = True
+
+                # AGGIUNTE
+
                 species.mutation_factor *= rd.uniform(0.75, 0.999)
                 species.add_node_factor *= rd.uniform(1.01, 1.05)
+
+                # ---
+
             else:
                 species.stagnation_counter += 1
+
+                # AGGIUNTE
+
                 species.mutation_factor *= 1 + rd.uniform(0.01, 0.05) * species.stagnation_counter
                 if sum(c.weight for c in species.representative.graph.connections if c.enabled) / len([c for c in species.representative.graph.connections if c.enabled]) > 0:
                     species.weight_influence -= rd.uniform(0.01, 0.025) * species.stagnation_counter
@@ -165,20 +175,22 @@ class NeatOptimizer():
                 else:
                      species.bias_influence += rd.uniform(0.001, 0.0025) * species.stagnation_counter
                 species.add_node_factor *= rd.uniform(1 / len(species.representative.graph.nodes), 1)
-            #print("species weight influence", species.weight_influence, "mutation factor", species.mutation_factor, "stagnation counter", species.stagnation_counter)
-            
-            elites = self.get_elites(species.members, species_median_fitness, input, target)
-            '''if species.stagnation_counter > 30 and len(new_population) > self.POPULATION * 0.1:
-                continue'''
+
+                # ---
+
+            if species.stagnation_counter > 20 and len(new_population) > self.POPULATION * 0.10:
+                continue
+                #allow_normal_crossover = True
+
+            elites = self.get_elites(species.members, species.avg_fitness, input, target)
                 
             new_population.extend(elites)
-            #print("num elit", len(elites))
             if len(elites) < 4:
                 elites = species.members[:3]
             
-            #if total_average_fitness > 0:
-            offspring_count = max(12, int(rd.uniform(0.75, 2) * len(elites) * species_median_fitness))
+            offspring_count = max(self.POPULATION * 0.15 , int(len(elites) * species.avg_fitness * (rd.randint(75, 200) / 100)))
             offspring_count = min(self.POPULATION / len(species_list), offspring_count)
+
             #offspring_count = int(n - n / len(elites))
             #print("offspring count", offspring_count)
             #else:
@@ -192,6 +204,11 @@ class NeatOptimizer():
                 self.mutate(child.graph, species.mutation_factor, species.add_node_factor, species.weight_influence, species.bias_influence)
                 new_population.append(child)
                 offspring_count -= 1
+            
+        '''if allow_normal_crossover:
+            species = species_list
+        else:
+            species = species_list[:2]'''
 
         return new_population
     
@@ -210,9 +227,13 @@ class NeatOptimizer():
     def fitness(self, network: Network, input, target):
         output = network.forward(input)
         error = np.mean(np.abs(np.array(output) - np.array(target)))
-        fitness_value = -error
-        normalized_fitness = np.exp(fitness_value)
-        return normalized_fitness
+        return error
+
+        #fitness_value = -error
+        #normalized_fitness = np.exp(fitness_value)
+        #return normalized_fitness
+
+
         #error = 0
         #for i in range(len(output)):
             #for j in range(len(output[i])):
@@ -394,8 +415,8 @@ class NeatOptimizer():
     def mutate_change_weight(self, connection: Connection, weight_influence):
         connection.weight += rd.uniform(-0.25 + weight_influence, 0.25 + weight_influence)
 
-    def calculate_genetic_distance(self, net1: Network, net2: Network, c1=0.5, c2=0.5, c3=1):
-        '''nodes1 = set(net1.graph.nodes)
+    def calculate_genetic_distance(self, net1: Network, net2: Network, c1=1, c2=1, c3=1):
+        nodes1 = set(net1.graph.nodes)
         nodes2 = set(net2.graph.nodes)
 
         # Determina connessioni in eccesso e disgiunte
@@ -403,10 +424,10 @@ class NeatOptimizer():
         disjoint_genes = len((nodes1 | nodes2) - (nodes1 & nodes2))
 
         # Calcola la differenza media dei pesi
-        common_nodes = nodes1 & nodes2'''
+        #common_nodes = nodes1 & nodes2
 
-        nodes1, connections1 = self.calculate_network_dimension(net1)
-        nodes2, connections2 = self.calculate_network_dimension(net2)
+        #nodes1, connections1 = self.calculate_network_dimension(net1)
+        #nodes2, connections2 = self.calculate_network_dimension(net2)
         weight_diff = 0
         for conn1 in net1.graph.connections:
             conn2 = net2.graph.get_connection(conn1.key, conn1.value)
@@ -414,7 +435,7 @@ class NeatOptimizer():
                 #print(conn1.weight, conn2.weight)
                 weight_diff += abs(conn1.weight - conn2.weight)
                     
-        return abs(nodes1 - nodes2) * c1 + abs(connections1 - connections2) * c2 + weight_diff * c3
+        return c1 * excess_genes + c2 * disjoint_genes + c3 * weight_diff
         '''# Normalizzazione con il numero massimo di connessioni
         N = max(len(nodes1), len(nodes2), 1)  
         genetic_distance = (c1 * excess_genes / N) + (c2 * disjoint_genes / N) + (c3 * weight_diff)
@@ -426,7 +447,7 @@ class NeatOptimizer():
         connections = len([c for c in network.graph.connections if c.enabled])
         return nodes, connections
 
-    def speciation(self, population, species_list, speciation_threshold=5):
+    def speciation(self, population, species_list, speciation_threshold=4):
         species_map = {species: [] for species in species_list}
 
         for net in population:
@@ -445,7 +466,7 @@ class NeatOptimizer():
 
         keys = species_map.copy().keys()
         for species in keys:
-            if len(species_map[species]) < self.POPULATION * 0.1:
+            if len(species_map[species]) < self.POPULATION * 0.08:
                 min = 0
                 min_sp = None
                 for sp in [s for s in species_list if s != species]:

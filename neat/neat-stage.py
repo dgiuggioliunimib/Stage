@@ -27,7 +27,7 @@ class NeatOptimizer():
 
     #MUTATION_RATE = 0.05
     INHERIT_DISJOINT_RATE = 0.75
-    MUTATION_ADD_NODE_RATE = 0.01
+    MUTATION_ADD_NODE_RATE = 0.1
     MUTATION_ADD_CONNECTION_RATE = 0.02
     MUTATION_REMOVE_NODE_RATE = 0.01
     MUTATION_REMOVE_CONNECTION_RATE = 0.005
@@ -38,7 +38,7 @@ class NeatOptimizer():
 
     innovation_tracker = InnovationTracker()
 
-    def __init__(self, population: int, generations: int, graph_leaves: int = 1, graph_input_size: int = 2, error: float = 0.03):
+    def __init__(self, population: int, generations: int, graph_leaves: int = 1, graph_input_size: int = 2, error: float = 0.01):
         self.POPULATION = population
         self.GENERATIONS = generations
         self.graph_leaves = graph_leaves
@@ -61,7 +61,7 @@ class NeatOptimizer():
         for r in graph.root:
             for b in border:
                 inn = self.innovation_tracker.get_innovation_for_node(r.id, b.id)
-                graph.add_connection(Connection(r, b, rd.uniform(-1, 1), inn))
+                graph.add_connection(Connection(r, b, rd.uniform(-5, 5), inn))
 
         return graph
         
@@ -194,7 +194,7 @@ class NeatOptimizer():
 
                 # ---
 
-            if species.stagnation_counter > 20 and len(new_population) > self.POPULATION * 0.1:
+            if species.stagnation_counter > 30 and len(new_population) > self.POPULATION * 0.1:
                 continue
                 #allow_normal_crossover = True
 
@@ -242,8 +242,14 @@ class NeatOptimizer():
     
     def fitness(self, network: Network, input, target):
         output = network.forward(input)
+        '''
         error = np.abs(np.array(output) - np.array(target))
         fitness = 1 - np.mean(error)
+        '''
+        squared_error = (np.array(output) - np.array(target)) ** 2
+        penalties = -np.log2(1 - np.clip(squared_error, 0, 0.9999) + 1e-9)
+        fitness = 1.0 / (1.0 + np.sum(penalties))
+        #'''
 
         '''error = 0
         for i in range(len(output)):
@@ -323,12 +329,13 @@ class NeatOptimizer():
     def mutate_add_node(self, graph: Graph):
         if graph.connections:
             connection = rd.choice(graph.connections)
-            new_node = Node(graph.get_new_id())
-            inn1 = self.innovation_tracker.get_innovation_for_node(new_node.id, connection.value.id)
-            graph.add_connection(Connection(new_node, connection.value, rd.uniform(-1, 1), inn1))
-            inn2 = self.innovation_tracker.get_innovation_for_node(connection.key.id, new_node)
-            graph.add_connection(Connection(connection.key, new_node, connection.weight, inn2))
             if connection.key.id != 0:
+                new_node = Node(graph.get_new_id())
+                inn1 = self.innovation_tracker.get_innovation_for_node(new_node.id, connection.value.id)
+                graph.add_connection(Connection(new_node, connection.value, connection.weight, inn1))
+                inn2 = self.innovation_tracker.get_innovation_for_node(connection.key.id, new_node)
+                graph.add_connection(Connection(connection.key, new_node, 1, inn2))
+                #if connection.key.id != 0:
                 graph.remove_connection(connection)
             
     def mutate_add_connection(self, graph: Graph):
@@ -440,7 +447,7 @@ class NeatOptimizer():
 
     def mutate_change_weight(self, connection: Connection, weight_influence):
         if rd.random() < self.MUTATION_PERTURB_CHANCE:
-            connection.weight += rd.uniform(-0.1 + weight_influence, 0.1 + weight_influence)
+            connection.weight += rd.uniform(-0.5 + weight_influence, 0.5 + weight_influence)
         else:
             connection.weight = rd.uniform(-1, 1)
 
@@ -638,7 +645,6 @@ if __name__ == "__main__":
     X = [[0, 0], [0, 1], [1, 0], [1, 1]]
     y = [0, 1, 1, 0]
     y_true_values = TargetTransform.get_true_values(y)
-    print("y true values", y_true_values)
     X_train = X
     y_train = y_true_values
     X_test = X
@@ -663,7 +669,7 @@ if __name__ == "__main__":
     INPUT_SIZE = len(X[0])
 
     POPULATION = 150
-    GENERATIONS = 500
+    GENERATIONS = 1000
 
     optimizer = NeatOptimizer(POPULATION, GENERATIONS, LEAVES, INPUT_SIZE)
     network = optimizer.optimize(X_train, y_train)

@@ -16,12 +16,15 @@ class Network():
 
         for i in input:
             rank_zero = self.graph.rank[0]
-            for j in range(len(rank_zero)):
-                rank_zero[j].activate(i[j], 1)
+            rank_zero = sorted(rank_zero, key=lambda z: z.id, reverse=True)
+            rank_zero[0].activate(1, 1)
+            for j in range(1, len(rank_zero)):
+                    rank_zero[j].activate(i[j - 1], 1)
             for rank in range(self.graph.max_rank):
                 for node in self.graph.rank[rank]:
                     for adj in self.graph.adjacency_list[node]:
-                        adj["value"].activate(node.activation_value, adj["weight"])
+                        if adj["enabled"]:
+                            adj["value"].activate(node.activation_value, adj["weight"])
 
             single_output = [o.activation_value for o in self.graph.rank[self.graph.max_rank]]
             output.append(single_output)

@@ -1,8 +1,7 @@
 from Activation import Activation, Sigmoid, SoftMax, ReLU, Identity
 
 class Node():
-    def __init__(self, id: int, bias : float = 1, activation : Activation = Sigmoid()):
-        self.bias = bias
+    def __init__(self, id: int, activation : Activation = Sigmoid()):
         self.id = id
         self.value = 0
         self.activation_value = 0
@@ -22,4 +21,4 @@ class Node():
 
     def activate(self, input_value, weight):
         self.value += input_value * weight
-        self.activation_value = self.activation.activate(self.value + self.bias)
+        self.activation_value = self.activation.activate(self.value)

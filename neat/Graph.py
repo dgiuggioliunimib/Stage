@@ -183,4 +183,4 @@ class Graph():
         for conn in self.connections:
             if conn.key not in self.adjacency_list:
                 self.adjacency_list[conn.key] = []
-            self.adjacency_list[conn.key].append({"value": conn.value, "weight": conn.weight})
+            self.adjacency_list[conn.key].append({"value": conn.value, "weight": conn.weight, "enabled": conn.enabled})

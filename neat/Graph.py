@@ -90,75 +90,6 @@ class Graph():
                 return conn
         return None
 
-    '''def calculate_leaves(self):
-        leaves = []
-        for key in self.value.keys():
-            if len(self.value[key]) == 0:
-                leaves.append(key)
-        self.leaves = leaves'''
-
-    '''def get_leaves(self):
-        return self.leaves'''
-
-    '''def get_root(self):
-        root = []
-        for node in self.nodes:
-            is_root = True
-            for key in self.value.keys():
-                if key != node and is_root:
-                    for conn in self.value[key]:
-                        value = conn["value"]
-                        if node == value:
-                            connection = self.get_connection(key, value)
-                            if connection.enabled:
-                                is_root = False
-                                break
-            if is_root:
-                root.append(node)
-        return root'''
-    
-    '''def add_root_layer(self, root_layer : List[Node]):
-        previous = self.get_root()
-        for r in root_layer:
-            for p in previous:
-                self.add_connection(Connection(r, p, rd.uniform(-2.5, 2.5)))'''
-
-    '''def get_intermediate_connections(self):
-        connections = self.connections.copy()
-        root = self.get_root()
-        for c in self.connections:
-            if c.key in root:
-                connections.remove(c)
-        return connections'''
-
-    '''def set_rank(self):
-        root = self.get_root()
-        self.rank = {}
-        i = 0
-        while len(root) > 0:
-            adj = []
-            for r in root:
-                for v in self.value[r]:
-                    val = v["value"]
-                    connection = self.get_connection(r, val)
-                    if connection.enabled and val.id not in [a.id for a in adj] and val.id not in [l.id for l in self.leaves]:
-                        adj.append(val)
-            a = adj.copy()
-            for node in a:
-                w = [x["value"] for x in self.value[node] if self.get_connection(node, x["value"]).enabled]
-                while len(w) > 0:
-                    h = []
-                    for w_node in w:
-                        if w_node in adj:
-                            adj.remove(w_node)
-                        h.extend([x["value"] for x in self.value[w_node] if self.get_connection(w_node, x["value"]).enabled])
-                    w = h
-            self.rank[i] = root
-            i += 1
-            root = adj
-        self.rank[i] = self.leaves
-        self.max_rank = i'''
-
     def set_rank(self):
         root = self.root
         self.rank = {}
@@ -184,3 +115,30 @@ class Graph():
             if conn.key not in self.adjacency_list:
                 self.adjacency_list[conn.key] = []
             self.adjacency_list[conn.key].append({"value": conn.value, "weight": conn.weight, "enabled": conn.enabled})
+
+class GraphAllowConnection():
+
+    def allow_connection(self, a: Node, b: Node, graph : Graph):
+        return not(a == b or self.already_exist(a, b, graph) or self.does_make_cycle(a, b, graph))
+
+    def already_exist(self, a: Node, b: Node, graph: Graph):
+        connection = graph.get_connection(a, b)
+        if connection:
+            return connection.enabled
+        else:
+            return False
+            
+    def does_make_cycle(self, a: Node, b: Node, graph: Graph):
+
+        if a == b:
+            return True
+        if b not in graph.nodes:
+            return False
+        connection = graph.get_connection(b, a)
+        if connection:
+            if connection.enabled:
+                return True
+        cycle = False
+        for adj in [c.value for c in graph.connections if c.enabled and c.key == b]:
+            cycle = cycle or self.does_make_cycle(a, adj, graph)
+        return cycle

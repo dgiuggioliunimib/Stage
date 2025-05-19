@@ -103,8 +103,9 @@ class NeatOptimizer():
             gen += 1
             error = 1 - best_fitness
         
-        print("Best network ever in GEN:", best_gen_ever, "\nFITNESS:", best_fitness_ever, "\n", best_network_ever.graph.rank, "\n", best_network_ever.graph.adjacency_list, "\n", best_network_ever.graph.connections)
+        #print("Best network ever in GEN:", best_gen_ever, "\nFITNESS:", best_fitness_ever, "\n", best_network_ever.graph.rank, "\n", best_network_ever.graph.adjacency_list, "\n", best_network_ever.graph.connections)
         
+        '''
         plt.plot(fitness_history)
         plt.xlabel("Generazione")
         plt.ylabel("Fitness")
@@ -129,7 +130,9 @@ class NeatOptimizer():
         plt.title("Evoluzione popolazione")
         plt.show()
 
-        return best_network
+        '''
+
+        return best_network, gen
     
     def evolve_species(self, species_list, input, target):
         new_population = []
@@ -150,11 +153,10 @@ class NeatOptimizer():
                 species.add_node_factor *= rd.uniform(1.01, 1.05)'''
 
                 # ---
-
             else:
                 species.stagnation_counter += 1
 
-                # AGGIUNTE
+                 # AGGIUNTE
 
                 '''species.mutation_factor *= 1 + rd.uniform(0.01, 0.05) * species.stagnation_counter
                 if sum(c.weight for c in species.representative.graph.connections if c.enabled) / len([c for c in species.representative.graph.connections if c.enabled]) > 0:
@@ -164,19 +166,21 @@ class NeatOptimizer():
 
                 species.add_node_factor *= rd.uniform(1 / len(species.representative.graph.nodes), 1)'''
 
-                # ---
+                     
 
-            if species.stagnation_counter > 20 and len(new_population) > self.setting.POPULATION * 0.1:
-                continue
+                # ---
 
             elites = self.get_elites(species.members, species.avg_fitness, input, target)
                 
             if len(elites) < 4:
                 elites = species.members[:3]
             new_population.append(elites[0])
-            
-            offspring_count = int(min(max(self.setting.POPULATION * rd.uniform(0.5, 0.75) / len(species_list), int(len(elites) * species.avg_fitness)), self.setting.POPULATION * rd.uniform(1.0, 1.25) / len(species_list)))
 
+            if species.stagnation_counter > 20 and len(new_population) > self.setting.POPULATION * 0.1:
+                continue
+            
+            offspring_count = int(min(max(self.setting.POPULATION * rd.uniform(0.5, 0.75) / len(species_list), int(len(elites) * species.avg_fitness)), self.setting.POPULATION * rd.uniform(1.0, 1.25) / len(species_list)))         
+            #offspring_count = len(species.members) - 1
             while offspring_count > 0:
                 parent1, parent2 = rd.sample(elites, 2)
                 child = self.crossover(parent1, parent2)
@@ -246,7 +250,6 @@ class NeatOptimizer():
                 graph.add_connection(Connection(new_node, connection.value, connection.weight, inn1))
                 inn2 = self.innovation_tracker.get_innovation_for_node(connection.key.id, new_node)
                 graph.add_connection(Connection(connection.key, new_node, 1, inn2))
-                #if connection.key.id != 0:
                 graph.remove_connection(connection)
             
     def mutate_add_connection(self, graph: Graph):

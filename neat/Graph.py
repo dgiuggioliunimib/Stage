@@ -68,21 +68,14 @@ class Graph():
             self.add_node(connection.key)
             self.add_node(connection.value)
             self.connections.append(connection)
-            #connection_val = {"value" : connection.value}
-            #self.value[connection.key].append(connection_val)
         else:
             c.enabled = True
- 
-        #self.calculate_leaves()
-        #self.set_rank()
 
     def remove_connection(self, connection : Connection, delete = False):
         if delete:
             self.connections.remove(connection)
         else:
             connection.enabled = False
-        #self.calculate_leaves()
-        #self.set_rank()
 
     def get_connection(self, key, value):
         for conn in self.connections:
@@ -90,9 +83,9 @@ class Graph():
                 return conn
         return None
 
-    def set_rank(self):
+    def create_depth_dictionary(self):
         root = self.root
-        self.rank = {}
+        self.depth_dictionary = {}
         i = 0
         while len(root) > 0:
             adj = set([c.value for c in self.connections if c.enabled and c.key in root and c.value not in self.leaves])
@@ -103,11 +96,11 @@ class Graph():
                     adj = [a for a in adj if a not in w]
                     h = [c.value for c in self.connections if c.enabled and c.key in w]
                     w = h
-            self.rank[i] = root
+            self.depth_dictionary[i] = root
             i += 1
             root = adj
-        self.rank[i] = self.leaves
-        self.max_rank = i
+        self.depth_dictionary[i] = self.leaves
+        self.max_depth = i
 
     def create_adjacency_list(self):
         self.adjacency_list = {}
@@ -124,20 +117,18 @@ class GraphAllowConnection():
     def already_exist(self, a: Node, b: Node, graph: Graph):
         connection = graph.get_connection(a, b)
         if connection:
-            return connection.enabled
+            return True
         else:
             return False
             
     def does_make_cycle(self, a: Node, b: Node, graph: Graph):
-
         if a == b:
             return True
         if b not in graph.nodes:
             return False
         connection = graph.get_connection(b, a)
         if connection:
-            if connection.enabled:
-                return True
+            return True
         cycle = False
         for adj in [c.value for c in graph.connections if c.enabled and c.key == b]:
             cycle = cycle or self.does_make_cycle(a, adj, graph)

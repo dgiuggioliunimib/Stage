@@ -9,7 +9,9 @@ class Connection():
         self.innovation = innovation
 
     def __eq__(self, value):
-        return isinstance(value, Connection) and self.key == value.key and self.value == value.value and self.innovation == value.innovation
+        return isinstance(value, Connection) and (self.key == value.key and 
+                                                  self.value == value.value and 
+                                                  self.innovation == value.innovation)
     
     def __hash__(self):
         return hash(self.key + " " + self.value + " " + self.innovation)
